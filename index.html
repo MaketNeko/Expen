@@ -224,14 +224,15 @@ a:hover{text-decoration:underline;}
 //  BAKED CONFIG
 // ══════════════════════════════════════════════
 const BAKED_CONFIG = {
-  apiKey: "AIzaSyDxItd8YWJnIDvcKl5W9cr167cPaCVuH_I",
-  authDomain: "expense-tracker-9546b.firebaseapp.com",
-  projectId: "expense-tracker-9546b",
-  storageBucket: "expense-tracker-9546b.firebasestorage.app",
-  messagingSenderId: "23163265738",
-  appId: "1:23163265738:web:de0b1ad570e2214a688a33",
-  measurementId: "G-6R40DQ3NZX",
-  databaseURL: "https://expense-tracker-9546b-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: "AIzaSyAS-X1RCAgGFMw23mKQb-mzEsG8kDJ3BNg",
+  authDomain: "expen-2d9f1.firebaseapp.com",
+  databaseURL: "https://expen-2d9f1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "expen-2d9f1",
+  storageBucket: "expen-2d9f1.firebasestorage.app",
+  messagingSenderId: "614419884151",
+  appId: "1:614419884151:web:272f5a822c3bcad614fe72",
+  measurementId: "G-1EBLGMWN00"
+  databaseURL: "https://expen-2d9f1-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // ══════════════════════════════════════════════
@@ -446,24 +447,34 @@ function saveSettings(){
   render();
 }
 
-// ── DISCONNECT (แก้ไขแล้ว) ──────────────────────
-function disconnect(){
-  showConfirm(
-    "ออกจากครอบครัว "" + S.familyCode + ""?\nข้อมูลบน Firebase จะยังอยู่ครบ",
-    ()=>{
-      if(fbListener){fbListener();fbListener=null;}
-      if(fbApp){try{fbApp.delete();}catch(e){} fbApp=null; fbDb=null;}
-      // เก็บ fbConfig ไว้ (ใช้ BAKED_CONFIG) — แค่ล้าง familyCode
-      S.fbConfig = BAKED_CONFIG;
-      S.familyCode=""; S.myName=""; S.txs=[];
-      S.syncStatus="offline"; S.wizStep=3; S.wizCode=""; S.wizName="";
-      localStorage.removeItem("fb-expense-cfg");
-      showToast("👋 ออกจากบัญชีแล้ว");
-      render();
-    },
-    "ออก", "var(--red)"
-  );
+// ── DISCONNECT — ย้อนกลับหน้าเลือกครอบครัว ──────
+function _doDisconnect(){
+  if(fbListener){fbListener();fbListener=null;}
+  if(fbApp){try{fbApp.delete();}catch(e){} fbApp=null; fbDb=null;}
+  S.fbConfig=BAKED_CONFIG;
+  S.familyCode=""; S.myName=""; S.txs=[];
+  S.syncStatus="offline"; S.wizStep=3; S.wizCode=""; S.wizName="";
+  localStorage.removeItem("fb-expense-cfg");
+  _appStatePushed=false;
+  render();
 }
+function disconnect(){
+  if(_appStatePushed){ history.back(); }
+  else { _doDisconnect(); }
+}
+
+// ── BROWSER HISTORY (รองรับปุ่มย้อนกลับ browser) ──
+let _appStatePushed=false;
+function pushAppState(){
+  if(!_appStatePushed){
+    history.pushState({view:"app"},"");
+    _appStatePushed=true;
+  }
+}
+window.addEventListener("popstate",function(){
+  _appStatePushed=false;
+  if(S.familyCode){ _doDisconnect(); }
+});
 
 function exportBackup(){
   const blob=new Blob([JSON.stringify({version:3,familyCode:S.familyCode,exportedAt:new Date().toISOString(),txs:S.txs},null,2)],{type:"application/json"});
@@ -483,7 +494,7 @@ function connectSavedFamily(code,name){
   saveLocal();
   saveFamilyToHistory(code,name);
   const ok=initFirebase(cfg,code);
-  if(ok) showToast("🔥 เชื่อมต่อ "+code+" แล้ว!");
+  if(ok){ showToast("🔥 เชื่อมต่อ "+code+" แล้ว!"); pushAppState(); }
   render();
 }
 
@@ -514,7 +525,7 @@ function wizNext(){
     saveLocal();
     saveFamilyToHistory(code,name);
     const ok=initFirebase(cfg,code);
-    if(ok) showToast("🔥 เชื่อมต่อ Firebase แล้ว!");
+    if(ok){ showToast("🔥 เชื่อมต่อ Firebase แล้ว!"); pushAppState(); }
     render(); return;
   }
   S.wizStep++;
@@ -851,9 +862,9 @@ function render(){
       </div>
 
       <div class="card" style="margin-bottom:2rem;">
-        <div class="card-title" style="color:var(--red)">🚪 เปลี่ยน / ออกจากบัญชี</div>
-        <p style="font-size:13px;color:var(--g500);margin-bottom:1rem;">ออกจากบัญชีนี้เพื่อเปลี่ยนครอบครัว (ข้อมูลบน Firebase ยังอยู่ครบ)</p>
-        <button onclick="disconnect()" style="width:100%;padding:12px;background:var(--red-bg);color:var(--red);border:1.5px solid var(--red);border-radius:var(--rsm);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">🚪 ออกจากบัญชีนี้</button>
+        <div class="card-title">🔄 เปลี่ยนครอบครัว</div>
+        <p style="font-size:13px;color:var(--g500);margin-bottom:1rem;">ย้อนกลับไปหน้าเลือกรหัสครอบครัว ข้อมูลบน Firebase ยังอยู่ครบ</p>
+        <button onclick="disconnect()" style="width:100%;padding:12px;background:var(--g100);color:var(--g700);border:1.5px solid var(--g200);border-radius:var(--rsm);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">← เปลี่ยนครอบครัว</button>
       </div>`;
   }
 }
@@ -983,6 +994,7 @@ if(BAKED_CONFIG) S.fbConfig=BAKED_CONFIG;
 
 if(loadLocal()){
   initFirebase(S.fbConfig,S.familyCode);
+  pushAppState();
 }
 render();
 </script>
